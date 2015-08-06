@@ -2,6 +2,7 @@
 This module performs system identification.
 """
 import pylab as pl
+import scipy.linalg
 
 #pylint: disable=invalid-name, too-few-public-methods, no-self-use
 
@@ -11,23 +12,28 @@ class StateSpaceDiscreteLinear(object):
     State space for discrete linear systems.
     """
 
-    def __init__(self, A, B, C, D, dt):
+    def __init__(self, A, B, C, D, Q, R, dt):
         #pylint: disable=too-many-arguments
         self.A = pl.matrix(A)
         self.B = pl.matrix(B)
         self.C = pl.matrix(C)
         self.D = pl.matrix(D)
+        self.Q = pl.matrix(Q)
+        self.R = pl.matrix(R)
         self.dt = dt
 
-    def dynamics(self, x, u):
+    def dynamics(self, x, u, w):
         """
         Dynamics
-        x(k+1) = A x(k) + B u(k)
+        x(k+1) = A x(k) + B u(k) + w(k)
+
+        E(ww^T) = Q
 
         Parameters
         ----------
         x : The current state.
         u : The current input.
+        w : The current process noise.
 
         Return
         ------
@@ -36,19 +42,21 @@ class StateSpaceDiscreteLinear(object):
         """
         x = pl.matrix(x)
         u = pl.matrix(u)
-        A = self.A
-        B = self.B
-        return A*x + B*u
+        w = pl.matrix(w)
+        return self.A*x + self.B*u + w
 
-    def measurement(self, x, u):
+    def measurement(self, x, u, v):
         """
         Measurement.
-        y(k) = C x(k) + D u(k)
+        y(k) = C x(k) + D u(k) + v(k)
+
+        E(vv^T) = R
 
         Parameters
         ----------
         x : The current state.
         u : The current input.
+        v : The current measurement noise.
 
         Return
         ------
@@ -56,9 +64,8 @@ class StateSpaceDiscreteLinear(object):
         """
         x = pl.matrix(x)
         u = pl.matrix(u)
-        C = self.C
-        D = self.D
-        return C*x + D*u
+        v = pl.matrix(v)
+        return self.C*x + self.D*u + v
 
     def simulate(self, f_u, x0, tf):
         """
@@ -66,7 +73,7 @@ class StateSpaceDiscreteLinear(object):
 
         Parameters
         ----------
-        f_u: The input function of time.
+        f_u: The input function  f_u(t, x, i)
         x0: The initial state.
         tf: The final time.
 
@@ -75,16 +82,36 @@ class StateSpaceDiscreteLinear(object):
         data : A StateSpaceDataArray object.
 
         """
+        #pylint: disable=too-many-locals, no-member
         t = 0
         x = x0
         dt = self.dt
         data = StateSpaceDataList([], [], [], [])
+        i = 0
+        n_x = self.A.shape[0]
+        n_y = self.C.shape[0]
+
+        # take square root of noise cov to prepare for noise sim
+        if pl.norm(self.Q) > 0:
+            sqrtQ = scipy.linalg.sqrtm(self.Q)
+        else:
+            sqrtQ = self.Q
+
+        if pl.norm(self.R) > 0:
+            sqrtR = scipy.linalg.sqrtm(self.R)
+        else:
+            sqrtR = self.R
+
+        # main simulation loop
         while t + dt < tf:
-            u = f_u(t, x)
-            x = self.dynamics(x, u)
-            y = self.measurement(x, u)
+            u = f_u(t, x, i)
+            v = sqrtR.dot(pl.randn(n_y, 1))
+            y = self.measurement(x, u, v)
             data.append(t, x, y, u)
+            w = sqrtQ.dot(pl.randn(n_x, 1))
+            x = self.dynamics(x, u, w)
             t += dt
+            i += 1
         return data.to_StateSpaceDataArray()
 
     def __repr__(self):

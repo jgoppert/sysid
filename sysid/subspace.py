@@ -77,8 +77,6 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     U = block_hankel(u, f + p)
     Y = block_hankel(y, f + p)
 
-    print "U shape", U.shape
-
     W_p = W[:n_w*p, :]
     W_pp = W[:n_w*(p+1), :]
 
@@ -102,7 +100,7 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     #------------------------------------------
     # values in S and partition the SVD accordingly to obtain U1, S1
     U0, s0, VT0 = pl.svd(W1*O_i*W2)  #pylint: disable=unused-variable
-    print s0
+    #print s0
     n_x = pl.find(s0/s0.max() > s_tol)[-1] + 1
     U1 = U0[:, :n_x]
     # S1 = pl.matrix(pl.diag(s0[:n_x]))
@@ -131,8 +129,36 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     B_id = ss_mat[:n_x, n_x:]
     C_id = ss_mat[n_x:, :n_x]
     D_id = ss_mat[n_x:, n_x:]
-    sys = ss.StateSpaceDiscreteLinear(A_id, B_id, C_id, D_id, dt)
+
+    if n_x == n_y:
+        T = C_id.I # try to make C identity, want it to look like state feedback
+    else:
+        T = pl.matrix(pl.eye(n_x))
+
+    Q_id = pl.zeros((n_x, n_x))
+    R_id = pl.zeros((n_y, n_y))
+    sys = ss.StateSpaceDiscreteLinear(
+        A=T.I*A_id*T, B=T.I*B_id, C=C_id*T, D=D_id,
+        Q=Q_id, R=R_id, dt=dt)
     return sys
+
+
+def nrms(data_fit, data_true):
+    """
+    Normalized root mean square error.
+    """
+    # root mean square error
+    rms = pl.mean(pl.norm(data_fit - data_true, axis=0))
+
+    # normalization factor is the max - min magnitude, or 2 times max dist from mean
+    norm_factor = 2*pl.norm(data_true - pl.mean(data_true, axis=1), axis=0).max()
+    return (norm_factor - rms)/norm_factor
+
+def prbs(n):
+    """
+    Pseudo random binary sequence.
+    """
+    return pl.where(pl.rand(n) > 0.5, 0, 1)
 
 
 # vim: set et fenc=utf-8 ft=python  ff=unix sts=4 sw=4 ts=4 :
