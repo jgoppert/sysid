@@ -54,7 +54,7 @@ class TestSubspace(unittest.TestCase):
             pl.legend()
             pl.grid()
 
-    def test_subspace_det_algo1_mino(self):
+    def test_subspace_det_algo1_mimo(self):
         """
         Subspace deterministic algorithm (MIMO).
         """
