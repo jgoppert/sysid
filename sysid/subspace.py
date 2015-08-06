@@ -7,6 +7,8 @@ to avoid dimension conflicts.
 import pylab as pl
 from . import ss
 
+__all__ = ['subspace_det_algo1', 'prbs', 'nrms']
+
 #pylint: disable=invalid-name
 
 def block_hankel(data, f):
@@ -45,33 +47,42 @@ def project_oblique(B, C):
     proj_B_perp = project_perp(B)
     return proj_B_perp*(C*proj_B_perp).I*C
 
-def subspace_ident(y, u, f):
-    """
-    Do subspace identification.
-    """
-    y = pl.matrix(y)
-    u = pl.matrix(u)
-    f = 5
-    Y = block_hankel(y, f)
-    U = block_hankel(u, f)
-    proj_perp_U = project_perp(U)
-    Y_proj_U_perp = Y*proj_perp_U
-    #pl.plot(Y[0,:].T)
-    #pl.plot(Y_proj_row_U_perp[0,:].T)
-    #pl.show()
-
 def subspace_det_algo1(y, u, f, p, s_tol, dt):
     """
-    Subspace id for deterministic systems, algorithm 1.
+    Subspace Identification for deterministic systems
+    algorithm 1 from (1)
+
+    assuming a system of the form:
+
+    x(k+1) = A x(k) + B u(k)
+    y(k)   = C x(k) + D u(k)
+
+    and given y and u.
+
+    Find A, B, C, D
+
+    See page 52. of (1)
+
+    (1) Subspace Identification for Linear
+    Systems, by Van Overschee and Moor. 1996
     """
+    #pylint: disable=too-many-arguments, too-many-locals
+    # for this algorithm, we need future and past
+    # to be more than 1
     assert f > 1
     assert p > 1
+
+    # setup matrices
     y = pl.matrix(y)
     n_y = y.shape[0]
     u = pl.matrix(u)
     n_u = u.shape[0]
     w = pl.vstack([y, u])
     n_w = w.shape[0]
+
+    # make sure the input is column vectors
+    assert y.shape[0] < y.shape[1]
+    assert u.shape[0] < u.shape[1]
 
     W = block_hankel(w, f + p)
     U = block_hankel(u, f + p)
@@ -88,18 +99,25 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
 
     # step 1, calculate the oblique projections
     #------------------------------------------
+    # Y_p = G_i Xd_p + Hd_i U_p
+    # After the oblique projection, U_p component is eliminated,
+    # without changing the Xd_p component:
+    # Proj_perp_(U_p) Y_p = W1 O_i W2 = G_i Xd_p
     O_i = Y_f*project_oblique(U_f, W_p)
     O_im = Y_fm*project_oblique(U_fm, W_pp)
 
     # step 2, calculate the SVD of the weighted oblique projection
     #------------------------------------------
+    # given: W1 O_i W2 = G_i Xd_p
+    # want to solve for G_i, but know product, and not Xd_p
+    # so can only find Xd_p up to a similarity transformation
     W1 = pl.matrix(pl.eye(O_i.shape[0]))
     W2 = pl.matrix(pl.eye(O_i.shape[1]))
+    U0, s0, VT0 = pl.svd(W1*O_i*W2)  #pylint: disable=unused-variable
 
     # step 3, determine the order by inspecting the singular
     #------------------------------------------
     # values in S and partition the SVD accordingly to obtain U1, S1
-    U0, s0, VT0 = pl.svd(W1*O_i*W2)  #pylint: disable=unused-variable
     #print s0
     n_x = pl.find(s0/s0.max() > s_tol)[-1] + 1
     U1 = U0[:, :n_x]
@@ -113,24 +131,31 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
 
     # step 5, determine Xd_ip and Xd_p
     #------------------------------------------
+    # only know Xd up to a similarity transformation
     Xd_i = G_i.I*O_i
     Xd_ip = G_im.I*O_im
 
     # step 6, solve the set of linear eqs
     # for A, B, C, D
     #------------------------------------------
-    Y_ii = Y[n_y*p, :]
-    U_ii = U[n_u*p, :]
+    Y_ii = Y[n_y*p:n_y*(p+1), :]
+    U_ii = U[n_u*p:n_u*(p+1), :]
 
     a_mat = pl.matrix(pl.vstack([Xd_ip, Y_ii]))
     b_mat = pl.matrix(pl.vstack([Xd_i, U_ii]))
     ss_mat = a_mat*b_mat.I
     A_id = ss_mat[:n_x, :n_x]
     B_id = ss_mat[:n_x, n_x:]
+    assert B_id.shape[0] == n_x
+    assert B_id.shape[1] == n_u
     C_id = ss_mat[n_x:, :n_x]
+    assert C_id.shape[0] == n_y
+    assert C_id.shape[1] == n_x
     D_id = ss_mat[n_x:, n_x:]
+    assert D_id.shape[0] == n_y
+    assert D_id.shape[1] == n_u
 
-    if n_x == n_y:
+    if pl.matrix_rank(C_id) == n_x:
         T = C_id.I # try to make C identity, want it to look like state feedback
     else:
         T = pl.matrix(pl.eye(n_x))
