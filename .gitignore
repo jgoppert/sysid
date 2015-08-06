@@ -57,3 +57,4 @@ docs/_build/
 target/
 
 sysid/version.py
+*.ipynb_checkpoints/
