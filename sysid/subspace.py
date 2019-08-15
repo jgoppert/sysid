@@ -11,6 +11,7 @@ __all__ = ['subspace_det_algo1', 'prbs', 'nrms']
 
 #pylint: disable=invalid-name
 
+
 def block_hankel(data, f):
     """
     Create a block hankel matrix.
@@ -23,12 +24,14 @@ def block_hankel(data, f):
         pl.vstack([data[:, i+j] for i in range(f)])
         for j in range(n)]))
 
+
 def project(A):
     """
     Creates a projection matrix onto the rowspace of A.
     """
     A = pl.matrix(A)
-    return  A.T*(A*A.T).I*A
+    return A.T*(A*A.T).I*A
+
 
 def project_perp(A):
     """
@@ -38,7 +41,8 @@ def project_perp(A):
     A = pl.matrix(A)
     I = pl.matrix(pl.eye(A.shape[1]))
     P = project(A)
-    return  I - P
+    return I - P
+
 
 def project_oblique(B, C):
     """
@@ -46,6 +50,7 @@ def project_oblique(B, C):
     """
     proj_B_perp = project_perp(B)
     return proj_B_perp*(C*proj_B_perp).I*C
+
 
 def subspace_det_algo1(y, u, f, p, s_tol, dt):
     """
@@ -66,7 +71,7 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     (1) Subspace Identification for Linear
     Systems, by Van Overschee and Moor. 1996
     """
-    #pylint: disable=too-many-arguments, too-many-locals
+    # pylint: disable=too-many-arguments, too-many-locals
     # for this algorithm, we need future and past
     # to be more than 1
     assert f > 1
@@ -98,7 +103,7 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     U_fm = U[n_u*(f+1):, :]
 
     # step 1, calculate the oblique projections
-    #------------------------------------------
+    # ------------------------------------------
     # Y_p = G_i Xd_p + Hd_i U_p
     # After the oblique projection, U_p component is eliminated,
     # without changing the Xd_p component:
@@ -107,37 +112,37 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     O_im = Y_fm*project_oblique(U_fm, W_pp)
 
     # step 2, calculate the SVD of the weighted oblique projection
-    #------------------------------------------
+    # ------------------------------------------
     # given: W1 O_i W2 = G_i Xd_p
     # want to solve for G_i, but know product, and not Xd_p
     # so can only find Xd_p up to a similarity transformation
     W1 = pl.matrix(pl.eye(O_i.shape[0]))
     W2 = pl.matrix(pl.eye(O_i.shape[1]))
-    U0, s0, VT0 = pl.svd(W1*O_i*W2)  #pylint: disable=unused-variable
+    U0, s0, VT0 = pl.svd(W1*O_i*W2)  # pylint: disable=unused-variable
 
     # step 3, determine the order by inspecting the singular
-    #------------------------------------------
+    # ------------------------------------------
     # values in S and partition the SVD accordingly to obtain U1, S1
-    #print s0
+    # print s0
     n_x = pl.where(s0/s0.max() > s_tol)[0][-1] + 1
     U1 = U0[:, :n_x]
     # S1 = pl.matrix(pl.diag(s0[:n_x]))
     # VT1 = VT0[:n_x, :n_x]
 
     # step 4, determine Gi and Gim
-    #------------------------------------------
+    # ------------------------------------------
     G_i = W1.I*U1*pl.matrix(pl.diag(pl.sqrt(s0[:n_x])))
-    G_im = G_i[:-n_y, :] # check
+    G_im = G_i[:-n_y, :]  # check
 
     # step 5, determine Xd_ip and Xd_p
-    #------------------------------------------
+    # ------------------------------------------
     # only know Xd up to a similarity transformation
     Xd_i = G_i.I*O_i
     Xd_ip = G_im.I*O_im
 
     # step 6, solve the set of linear eqs
     # for A, B, C, D
-    #------------------------------------------
+    # ------------------------------------------
     Y_ii = Y[n_y*p:n_y*(p+1), :]
     U_ii = U[n_u*p:n_u*(p+1), :]
 
@@ -156,7 +161,7 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     assert D_id.shape[1] == n_u
 
     if pl.matrix_rank(C_id) == n_x:
-        T = C_id.I # try to make C identity, want it to look like state feedback
+        T = C_id.I  # try to make C identity, want it to look like state feedback
     else:
         T = pl.matrix(pl.eye(n_x))
 
@@ -176,8 +181,10 @@ def nrms(data_fit, data_true):
     rms = pl.mean(pl.norm(data_fit - data_true, axis=0))
 
     # normalization factor is the max - min magnitude, or 2 times max dist from mean
-    norm_factor = 2*pl.norm(data_true - pl.mean(data_true, axis=1), axis=0).max()
+    norm_factor = 2 * \
+        pl.norm(data_true - pl.mean(data_true, axis=1), axis=0).max()
     return (norm_factor - rms)/norm_factor
+
 
 def prbs(n):
     """

@@ -8,9 +8,10 @@ import sysid.subspace
 
 pl.ion()
 
-#pylint: disable=invalid-name, no-self-use
+# pylint: disable=invalid-name, no-self-use
 
 ENABLE_PLOTTING = False
+
 
 class TestSubspace(unittest.TestCase):
     """
@@ -34,9 +35,10 @@ class TestSubspace(unittest.TestCase):
 
         pl.seed(1234)
         prbs1 = sysid.prbs(1000)
+
         def f_prbs(t, x, i):
             "input function"
-            #pylint: disable=unused-argument, unused-variable
+            # pylint: disable=unused-argument, unused-variable
             return prbs1[i]
 
         tf = 10
@@ -73,10 +75,11 @@ class TestSubspace(unittest.TestCase):
         pl.seed(1234)
         prbs1 = sysid.prbs(1000)
         prbs2 = sysid.prbs(1000)
+
         def f_prbs_2d(t, x, i):
             "input function"
             #pylint: disable=unused-argument
-            i = i%1000
+            i = i % 1000
             return 2*pl.matrix([prbs1[i]-0.5, prbs2[i]-0.5]).T
         tf = 8
         data = ss2.simulate(
@@ -99,6 +102,7 @@ class TestSubspace(unittest.TestCase):
                         label='$y_{:d}$ id'.format(i))
                 pl.legend()
                 pl.grid()
+
 
 if __name__ == "__main__":
     unittest.main()

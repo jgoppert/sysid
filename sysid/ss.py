@@ -4,10 +4,11 @@ This module performs system identification.
 import pylab as pl
 import scipy.linalg
 
-#pylint: disable=invalid-name, too-few-public-methods, no-self-use
+# pylint: disable=invalid-name, too-few-public-methods, no-self-use
 
 
-__all__ = ['StateSpaceDiscreteLinear', 'StateSpaceDataList', 'StateSpaceDataArray']
+__all__ = ['StateSpaceDiscreteLinear',
+           'StateSpaceDataList', 'StateSpaceDataArray']
 
 
 class StateSpaceDiscreteLinear(object):
@@ -106,7 +107,7 @@ class StateSpaceDiscreteLinear(object):
         data : A StateSpaceDataArray object.
 
         """
-        #pylint: disable=too-many-locals, no-member
+        # pylint: disable=too-many-locals, no-member
         x0 = pl.matrix(x0)
         assert x0.shape[1] == 1
         t = 0

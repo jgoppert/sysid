@@ -7,9 +7,10 @@ from sysid import ss
 
 pl.ion()
 
-#pylint: disable=invalid-name, no-self-use
+# pylint: disable=invalid-name, no-self-use
 
 ENABLE_PLOTTING = True
+
 
 class TestSS(unittest.TestCase):
     """
