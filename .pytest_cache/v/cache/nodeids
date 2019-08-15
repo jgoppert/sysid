@@ -1,7 +1,0 @@
-[
-  "sysid/test_ss.py::TestSS::test_state_space",
-  "sysid/test_ss.py::TestSS::test_state_space_discrete_linear",
-  "sysid/test_subspace.py::TestSubspace::test_block_hankel",
-  "sysid/test_subspace.py::TestSubspace::test_subspace_det_algo1_mimo",
-  "sysid/test_subspace.py::TestSubspace::test_subspace_det_algo1_siso"
-]

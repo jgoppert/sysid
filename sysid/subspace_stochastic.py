@@ -5,18 +5,21 @@ import matplotlib.pyplot as plt
 pinv = np.linalg.pinv
 rank = np.linalg.matrix_rank
 
+
 def block(B):
     """
     create a block matrix and return an array, numpy.bmat
-    returns a np.matrix which is problematic
+    returns a np.array which is problematic
     """
     return np.array(np.bmat(B))
+
 
 def project(B):
     """
     projection onto the rowspace of B
     """
     return B.T.dot(pinv(B.dot(B.T))).dot(B)
+
 
 def project_compliment(B):
     """
@@ -25,6 +28,7 @@ def project_compliment(B):
     P = project(B)
     return np.eye(P.shape[0]) - P
 
+
 def project_oblique(B, C):
     """
     oblique projection along the row space of B on the
@@ -32,14 +36,17 @@ def project_oblique(B, C):
     """
     r = C.shape[0]
     F = block([[C.dot(C.T), C.dot(B.T)], [B.dot(C.T), B.dot(B.T)]])
-    return block([C.T, B.T]).dot(pinv(F)[:,:r]).dot(C)
+    return block([C.T, B.T]).dot(pinv(F)[:, :r]).dot(C)
+
 
 def test_projections():
     A = np.random.randn(3, 3)
     B = np.random.randn(1, 3)
     C = np.vstack([B, np.random.randn(1, 3)])
     assert np.allclose(A, A.dot(project(B)) + A.dot(project_compliment(B)))
-    assert np.allclose(A, A.dot(project_oblique(C, B)) + A.dot(project_oblique(B, C)) +         A.dot(project_compliment(np.vstack([B, C]))))
+    assert np.allclose(A, A.dot(project_oblique(
+        C, B)) + A.dot(project_oblique(B, C)) + A.dot(project_compliment(np.vstack([B, C]))))
+
 
 test_projections()
 
@@ -69,7 +76,7 @@ def block_hankel(data, i):
 
 
 class StochasticStateSpaceDiscrete(object):
-    
+
     def __init__(self, A, B, C, D, Q, R, x0, dt):
         self._A = np.array(A)
         self._B = np.array(B)
@@ -115,11 +122,12 @@ class StochasticStateSpaceDiscrete(object):
         R = np.diag(0.01*np.random.rand(n_y))
         x0 = np.random.randn(n_x)
         return cls(A, B, C, D, Q, R, x0, dt)
-    
+
     def sim(self, t, u, plot=False):
         u = np.array(u)
         if u.shape[1] != self.n_u:
-            raise ValueError('u shape must be (, {:d}), got {:s}'.format(self.n_u, str(u.shape)))
+            raise ValueError('u shape must be (, {:d}), got {:s}'.format(
+                self.n_u, str(u.shape)))
         x0 = self._x0
         A = self._A
         B = self._B
@@ -149,22 +157,26 @@ class StochasticStateSpaceDiscrete(object):
             plt.title('simulation')
             y_lines = plt.plot(t, y, '.-')
             y_labels = ['y_{:d}'.format(i) for i in range(n_y)]
-            x_lines = plt.plot(t, x, '.-', label=['x_{:d}'.format(i) for i in range(n_x)])
+            x_lines = plt.plot(
+                t, x, '.-', label=['x_{:d}'.format(i) for i in range(n_x)])
             x_labels = ['x_{:d}'.format(i) for i in range(n_x)]
             plt.legend(x_lines + y_lines, x_labels + y_labels)
             plt.grid()
             plt.xlabel('t')
-            
+
         return y, x
 
     def __repr__(self):
         return repr(self.__dict__)
 
+
 def compute_fitness(y, y_fit):
     return 1 - np.var(y_fit - y)/np.var(y)
 
+
 def normalized_error(y, y_fit):
     return (y_fit - y)/np.std(y)
+
 
 def plot_normalized_error(t, y, y_fit):
     e = normalized_error(y, y_fit)
@@ -174,6 +186,7 @@ def plot_normalized_error(t, y, y_fit):
     plt.title('normalized error')
     plt.grid()
 
+
 def plot_output_comparison(t, y, y_fit):
     e = normalized_error(y, y_fit)
     plt.plot(t, y)
@@ -182,9 +195,10 @@ def plot_output_comparison(t, y, y_fit):
     plt.title('output comaprison error')
     plt.grid()
 
+
 def combined_algo_2(y, u, n_x_max, dt):
     i = 1 + n_x_max**2
-    
+
     # transpose to match definitions in book
     y = y.T
     u = u.T
@@ -198,8 +212,8 @@ def combined_algo_2(y, u, n_x_max, dt):
     u_rank = rank(np.cov(U['full']))
     if u_rank < 2*n_u*i:
         print('WARNING: input not persistently exciting'
-            ' order {:d} < {:d}'.format(
-            u_rank, 2*n_u*i))
+              ' order {:d} < {:d}'.format(
+                  u_rank, 2*n_u*i))
 
     W_p = np.vstack([U['p'], Y['p']])
     W_pp = np.vstack([U['pp'], Y['pp']])
@@ -219,7 +233,7 @@ def combined_algo_2(y, u, n_x_max, dt):
     s_tol = 1e-3
     U1 = np.zeros_like(U_)
     n_x = np.count_nonzero(s/s.max() > s_tol)
-    U1 = np.array(U_[:,:n_x])
+    U1 = np.array(U_[:, :n_x])
     S1_sqrt = np.diag(np.sqrt(s[:n_x]))
     Gamma_i = pinv(W1).dot(U1).dot(S1_sqrt)
     Gamma_im = Gamma_i[:-n_y, :]
@@ -231,10 +245,10 @@ def combined_algo_2(y, u, n_x_max, dt):
     RHS = np.vstack([X_i_d, U['i']])
     Coeff = LHS.dot(pinv(RHS))
 
-    A = Coeff[:n_x ,:n_x]
-    B = Coeff[:n_x ,n_x:]
-    C = Coeff[n_x: ,:n_x]
-    D = Coeff[n_x: ,n_x:]
+    A = Coeff[:n_x, :n_x]
+    B = Coeff[:n_x, n_x:]
+    C = Coeff[n_x:, :n_x]
+    D = Coeff[n_x:, n_x:]
 
     residuals = LHS - Coeff.dot(RHS)
     QR = np.cov(residuals)
@@ -245,9 +259,10 @@ def combined_algo_2(y, u, n_x_max, dt):
     x0 = np.zeros(n_x)
     return StochasticStateSpaceDiscrete(A, B, C, D, Q, R, x0, dt)
 
+
 def robust_combined_stochastic(y, u, n_x_max, dt):
     i = 1 + n_x_max**2
-    
+
     # transpose to match definitions in book
     y = y.T
     u = u.T
@@ -261,8 +276,8 @@ def robust_combined_stochastic(y, u, n_x_max, dt):
     u_rank = rank(np.cov(U['full']))
     if u_rank < 2*n_u*i:
         raise ValueError('input not persistently exciting'
-            ' order {:d} < {:d}'.format(
-            u_rank, 2*n_u*i))
+                         ' order {:d} < {:d}'.format(
+                             u_rank, 2*n_u*i))
 
     W_p = np.vstack([U['p'], Y['p']])
     W_pp = np.vstack([U['pp'], Y['pp']])
@@ -278,7 +293,7 @@ def robust_combined_stochastic(y, u, n_x_max, dt):
     s_tol = 1e-3
     U1 = np.zeros_like(U_)
     n_x = np.count_nonzero(s/s.max() > s_tol)
-    U1 = np.array(U_[:,:n_x])
+    U1 = np.array(U_[:, :n_x])
     S1_sqrt = np.diag(np.sqrt(s[:n_x]))
     Gamma_i = U1.dot(S1_sqrt)
     Gamma_im = Gamma_i[:-n_y, :]
@@ -292,9 +307,9 @@ def robust_combined_stochastic(y, u, n_x_max, dt):
 
     residuals = LHS - Coeff.dot(RHS)
     QR = np.cov(residuals)
-    
-    A = Coeff[:n_x ,:n_x]
-    C = Coeff[n_x: ,:n_x]
+
+    A = Coeff[:n_x, :n_x]
+    C = Coeff[n_x:, :n_x]
     K = Coeff[:, n_x:]
     print('K\n', K.shape)
 
@@ -315,11 +330,13 @@ def robust_combined_stochastic(y, u, n_x_max, dt):
     x0 = np.zeros(n_x)
     return StochasticStateSpaceDiscrete(A, B, C, D, Q, R, x0, dt)
 
+
 def prbs(m, n):
     """
     Pseudo random binary sequence.
     """
     return np.array(np.random.rand(m, n) > 0.5, dtype=np.int) - 0.5
+
 
 def sinusoid(m, f, t):
     u = []
@@ -329,6 +346,7 @@ def sinusoid(m, f, t):
         fi = f + np.random.randn()
         u.append(A*np.sin(phase + 2*np.pi*fi*t))
     return np.vstack(u).T
+
 
 if __name__ == "__main__":
 

@@ -20,12 +20,12 @@ class StateSpaceDiscreteLinear(object):
 
     def __init__(self, A, B, C, D, Q, R, dt):
         #pylint: disable=too-many-arguments
-        self.A = np.matrix(A)
-        self.B = np.matrix(B)
-        self.C = np.matrix(C)
-        self.D = np.matrix(D)
-        self.Q = np.matrix(Q)
-        self.R = np.matrix(R)
+        self.A = np.array(np.atleast_2d(A))
+        self.B = np.array(np.atleast_2d(B))
+        self.C = np.array(np.atleast_2d(C))
+        self.D = np.array(np.atleast_2d(D))
+        self.Q = np.array(np.atleast_2d(Q))
+        self.R = np.array(np.atleast_2d(R))
         self.dt = dt
 
         n_x = self.A.shape[0]
@@ -41,7 +41,7 @@ class StateSpaceDiscreteLinear(object):
         assert self.Q.shape[1] == n_x
         assert self.R.shape[0] == n_u
         assert self.R.shape[1] == n_u
-        assert np.matrix(dt).shape == (1, 1)
+        assert np.array(np.atleast_2d(dt)).shape == (1, 1)
 
     def dynamics(self, x, u, w):
         """
@@ -61,13 +61,13 @@ class StateSpaceDiscreteLinear(object):
         x(k+1) : The next state.
 
         """
-        x = np.matrix(x)
-        u = np.matrix(u)
-        w = np.matrix(w)
-        assert x.shape[1] == 1
-        assert u.shape[1] == 1
-        assert w.shape[1] == 1
-        return self.A*x + self.B*u + w
+        x = np.atleast_1d(x)
+        u = np.atleast_1d(u)
+        w = np.atleast_1d(w)
+        assert len(x.shape) == 1
+        assert len(u.shape) == 1
+        assert len(w.shape) == 1
+        return self.A.dot(x) + self.B.dot(u) + w
 
     def measurement(self, x, u, v):
         """
@@ -86,13 +86,13 @@ class StateSpaceDiscreteLinear(object):
         ------
         y(k) : The current measurement
         """
-        x = np.matrix(x)
-        u = np.matrix(u)
-        v = np.matrix(v)
-        assert x.shape[1] == 1
-        assert u.shape[1] == 1
-        assert v.shape[1] == 1
-        return self.C*x + self.D*u + v
+        x = np.atleast_1d(x)
+        u = np.atleast_1d(u)
+        v = np.atleast_1d(v)
+        assert len(x.shape) == 1
+        assert len(u.shape) == 1
+        assert len(v.shape) == 1
+        return self.C.dot(x) + self.D.dot(u) + v
 
     def simulate(self, f_u, x0, tf):
         """
@@ -110,8 +110,8 @@ class StateSpaceDiscreteLinear(object):
 
         """
         # pylint: disable=too-many-locals, no-member
-        x0 = np.matrix(x0)
-        assert x0.shape[1] == 1
+        x0 = np.atleast_1d(x0)
+        assert len(x0.shape) == 1
         t = 0
         x = x0
         dt = self.dt
@@ -119,8 +119,8 @@ class StateSpaceDiscreteLinear(object):
         i = 0
         n_x = self.A.shape[0]
         n_y = self.C.shape[0]
-        assert np.matrix(f_u(0, x0, 0)).shape[1] == 1
-        assert np.matrix(f_u(0, x0, 0)).shape[0] == n_y
+        assert np.atleast_2d(f_u(0, x0, 0)).shape[0] == 1
+        assert np.atleast_2d(f_u(0, x0, 0)).shape[1] == n_y
 
         # take square root of noise cov to prepare for noise sim
         if np.linalg.norm(self.Q) > 0:
@@ -136,10 +136,10 @@ class StateSpaceDiscreteLinear(object):
         # main simulation loop
         while t + dt < tf:
             u = f_u(t, x, i)
-            v = sqrtR.dot(np.random.randn(n_y, 1))
+            v = sqrtR.dot(np.random.randn(n_y))
             y = self.measurement(x, u, v)
             data.append(t, x, y, u)
-            w = sqrtQ.dot(np.random.randn(n_x, 1))
+            w = sqrtQ.dot(np.random.randn(n_x))
             x = self.dynamics(x, u, w)
             t += dt
             i += 1
@@ -168,10 +168,10 @@ class StateSpaceDataList(object):
         """
         Add to list.
         """
-        self.t += [t]
-        self.x += [x]
-        self.y += [y]
-        self.u += [u]
+        self.t += [np.atleast_1d(t)]
+        self.x += [np.atleast_1d(x)]
+        self.y += [np.atleast_1d(y)]
+        self.u += [np.atleast_1d(u)]
 
     def __str__(self):
         return str(self.__dict__)
@@ -185,25 +185,24 @@ class StateSpaceDataList(object):
         With fixed sizes.
         """
         return StateSpaceDataArray(
-            t=np.array(self.t).T,
-            x=np.array(self.x).T,
-            y=np.array(self.y).T,
-            u=np.array(self.u).T)
+            t=np.array(np.atleast_2d(self.t), dtype=float),
+            x=np.array(np.atleast_2d(self.x), dtype=float),
+            y=np.array(np.atleast_2d(self.y), dtype=float),
+            u=np.array(np.atleast_2d(self.u), dtype=float))
 
 
 class StateSpaceDataArray(object):
     """
-    A fixed size state space data lit.
+    A fixed size state space data list.
     """
 
     def __init__(self, t, x, y, u):
 
-        self.t = np.matrix(t)
-        self.x = np.matrix(x)
-        self.y = np.matrix(y)
-        self.u = np.matrix(u)
+        self.t = np.atleast_2d(t)
+        self.x = np.atleast_2d(x)
+        self.y = np.atleast_2d(y)
+        self.u = np.atleast_2d(u)
 
-        assert self.t.shape[0] == 1
         assert self.x.shape[0] < self.x.shape[1]
         assert self.y.shape[0] < self.y.shape[1]
         assert self.u.shape[0] < self.u.shape[1]

@@ -24,6 +24,8 @@ class TestSubspace(unittest.TestCase):
         """
         y = np.random.rand(3, 100)
         Y = sysid.subspace.block_hankel(y, 5)
+        np.set_printoptions(precision=3, suppress=True)
+        print('Y:\n', Y)
         self.assertEqual(Y.shape, (15, 95))
 
     def test_subspace_det_algo1_siso(self):
@@ -42,12 +44,12 @@ class TestSubspace(unittest.TestCase):
             return prbs1[i]
 
         tf = 10
-        data = ss1.simulate(f_u=f_prbs, x0=np.matrix(0), tf=tf)
+        data = ss1.simulate(f_u=f_prbs, x0=np.array(0), tf=tf)
         ss1_id = sysid.subspace_det_algo1(
             y=data.y, u=data.u,
-            f=5, p=5, s_tol=1e-1, dt=ss1.dt)
+            f=4, p=5, s_tol=1e-1, dt=ss1.dt)
         data_id = ss1_id.simulate(f_u=f_prbs, x0=0, tf=tf)
-        nrms = sysid.subspace.nrms(data_id.y, data.y)
+        nrms = sysid.subspace.nrms(data_id.y.T, data.y.T)
         self.assertGreater(nrms, 0.9)
 
         if ENABLE_PLOTTING:
@@ -61,16 +63,16 @@ class TestSubspace(unittest.TestCase):
         Subspace deterministic algorithm (MIMO).
         """
         ss2 = sysid.StateSpaceDiscreteLinear(
-            A=np.matrix([[0, 0.1, 0.2],
-                         [0.2, 0.3, 0.4],
-                         [0.4, 0.3, 0.2]]),
-            B=np.matrix([[1, 0],
-                         [0, 1],
-                         [0, -1]]),
-            C=np.matrix([[1, 0, 0],
-                         [0, 1, 0]]),
-            D=np.matrix([[0, 0],
-                         [0, 0]]),
+            A=np.array([[0, 0.1, 0.2],
+                        [0.2, 0.3, 0.4],
+                        [0.4, 0.3, 0.2]]),
+            B=np.array([[1, 0],
+                        [0, 1],
+                        [0, -1]]),
+            C=np.array([[1, 0, 0],
+                        [0, 1, 0]]),
+            D=np.array([[0, 0],
+                        [0, 0]]),
             Q=np.diag([0.01, 0.01, 0.01]), R=np.diag([0.01, 0.01]), dt=0.1)
         np.random.seed(1234)
         prbs1 = sysid.prbs(1000)
@@ -80,16 +82,16 @@ class TestSubspace(unittest.TestCase):
             "input function"
             #pylint: disable=unused-argument
             i = i % 1000
-            return 2*np.matrix([prbs1[i]-0.5, prbs2[i]-0.5]).T
+            return 2*np.array([prbs1[i]-0.5, prbs2[i]-0.5]).T
         tf = 8
         data = ss2.simulate(
-            f_u=f_prbs_2d, x0=np.matrix([0, 0, 0]).T, tf=tf)
+            f_u=f_prbs_2d, x0=np.array([0, 0, 0]).T, tf=tf)
         ss2_id = sysid.subspace_det_algo1(
             y=data.y, u=data.u,
-            f=5, p=5, s_tol=0.1, dt=ss2.dt)
+            f=4, p=5, s_tol=0.1, dt=ss2.dt)
         data_id = ss2_id.simulate(
             f_u=f_prbs_2d,
-            x0=np.matrix(np.zeros(ss2_id.A.shape[0])).T, tf=tf)
+            x0=np.zeros(ss2_id.A.shape[0]).T, tf=tf)
         nrms = sysid.nrms(data_id.y, data.y)
         self.assertGreater(nrms, 0.9)
 

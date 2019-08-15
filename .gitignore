@@ -58,3 +58,6 @@ target/
 
 sysid/version.py
 *.ipynb_checkpoints/
+
+.pytest_cache
+.vscode
