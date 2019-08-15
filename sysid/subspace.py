@@ -5,6 +5,8 @@ It enforces that matrices are used instead of arrays
 to avoid dimension conflicts.
 """
 import pylab as pl
+import numpy as np
+
 from . import ss
 
 __all__ = ['subspace_det_algo1', 'prbs', 'nrms']
@@ -17,10 +19,10 @@ def block_hankel(data, f):
     Create a block hankel matrix.
     f : number of rows
     """
-    data = pl.matrix(data)
+    data = np.matrix(data)
     assert len(data.shape) == 2
     n = data.shape[1] - f
-    return pl.matrix(pl.hstack([
+    return np.matrix(pl.hstack([
         pl.vstack([data[:, i+j] for i in range(f)])
         for j in range(n)]))
 
@@ -29,7 +31,7 @@ def project(A):
     """
     Creates a projection matrix onto the rowspace of A.
     """
-    A = pl.matrix(A)
+    A = np.matrix(A)
     return A.T*(A*A.T).I*A
 
 
@@ -38,8 +40,8 @@ def project_perp(A):
     Creates a projection matrix onto the space perpendicular to the
     rowspace of A.
     """
-    A = pl.matrix(A)
-    I = pl.matrix(pl.eye(A.shape[1]))
+    A = np.matrix(A)
+    I = np.matrix(pl.eye(A.shape[1]))
     P = project(A)
     return I - P
 
@@ -78,9 +80,9 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     assert p > 1
 
     # setup matrices
-    y = pl.matrix(y)
+    y = np.matrix(y)
     n_y = y.shape[0]
-    u = pl.matrix(u)
+    u = np.matrix(u)
     n_u = u.shape[0]
     w = pl.vstack([y, u])
     n_w = w.shape[0]
@@ -116,8 +118,8 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     # given: W1 O_i W2 = G_i Xd_p
     # want to solve for G_i, but know product, and not Xd_p
     # so can only find Xd_p up to a similarity transformation
-    W1 = pl.matrix(pl.eye(O_i.shape[0]))
-    W2 = pl.matrix(pl.eye(O_i.shape[1]))
+    W1 = np.matrix(pl.eye(O_i.shape[0]))
+    W2 = np.matrix(pl.eye(O_i.shape[1]))
     U0, s0, VT0 = pl.svd(W1*O_i*W2)  # pylint: disable=unused-variable
 
     # step 3, determine the order by inspecting the singular
@@ -126,12 +128,12 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     # print s0
     n_x = pl.where(s0/s0.max() > s_tol)[0][-1] + 1
     U1 = U0[:, :n_x]
-    # S1 = pl.matrix(pl.diag(s0[:n_x]))
+    # S1 = np.matrix(pl.diag(s0[:n_x]))
     # VT1 = VT0[:n_x, :n_x]
 
     # step 4, determine Gi and Gim
     # ------------------------------------------
-    G_i = W1.I*U1*pl.matrix(pl.diag(pl.sqrt(s0[:n_x])))
+    G_i = W1.I*U1*np.matrix(pl.diag(pl.sqrt(s0[:n_x])))
     G_im = G_i[:-n_y, :]  # check
 
     # step 5, determine Xd_ip and Xd_p
@@ -146,8 +148,8 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     Y_ii = Y[n_y*p:n_y*(p+1), :]
     U_ii = U[n_u*p:n_u*(p+1), :]
 
-    a_mat = pl.matrix(pl.vstack([Xd_ip, Y_ii]))
-    b_mat = pl.matrix(pl.vstack([Xd_i, U_ii]))
+    a_mat = np.matrix(pl.vstack([Xd_ip, Y_ii]))
+    b_mat = np.matrix(pl.vstack([Xd_i, U_ii]))
     ss_mat = a_mat*b_mat.I
     A_id = ss_mat[:n_x, :n_x]
     B_id = ss_mat[:n_x, n_x:]
@@ -160,10 +162,10 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     assert D_id.shape[0] == n_y
     assert D_id.shape[1] == n_u
 
-    if pl.matrix_rank(C_id) == n_x:
+    if np.linalg.matrix_rank(C_id) == n_x:
         T = C_id.I  # try to make C identity, want it to look like state feedback
     else:
-        T = pl.matrix(pl.eye(n_x))
+        T = np.matrix(pl.eye(n_x))
 
     Q_id = pl.zeros((n_x, n_x))
     R_id = pl.zeros((n_y, n_y))
@@ -178,11 +180,11 @@ def nrms(data_fit, data_true):
     Normalized root mean square error.
     """
     # root mean square error
-    rms = pl.mean(pl.norm(data_fit - data_true, axis=0))
+    rms = pl.mean(np.linalg.norm(data_fit - data_true, axis=0))
 
     # normalization factor is the max - min magnitude, or 2 times max dist from mean
     norm_factor = 2 * \
-        pl.norm(data_true - pl.mean(data_true, axis=1), axis=0).max()
+        np.linalg.norm(data_true - pl.mean(data_true, axis=1), axis=0).max()
     return (norm_factor - rms)/norm_factor
 
 
@@ -190,7 +192,7 @@ def prbs(n):
     """
     Pseudo random binary sequence.
     """
-    return pl.where(pl.rand(n) > 0.5, 0, 1)
+    return pl.where(np.random.rand(n) > 0.5, 0, 1)
 
 
 # vim: set et fenc=utf-8 ft=python  ff=unix sts=4 sw=4 ts=4 :

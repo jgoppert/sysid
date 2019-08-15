@@ -2,10 +2,10 @@
 Unit testing.
 """
 import unittest
-import pylab as pl
-from sysid import ss
+import numpy as np
+import matplotlib.pyplot as plt
 
-pl.ion()
+from sysid import ss
 
 # pylint: disable=invalid-name, no-self-use
 
@@ -39,11 +39,11 @@ class TestSS(unittest.TestCase):
         #pylint: disable=unused-variable
         y0 = sys1.measurement(x0, u0, v0)
         x1 = sys1.dynamics(x0, u0, w0)
-        data = sys1.simulate(f_u=lambda t, x, i: pl.sin(t), x0=x0, tf=10)
+        data = sys1.simulate(f_u=lambda t, x, i: np.sin(t), x0=x0, tf=10)
 
         if ENABLE_PLOTTING:
             data.plot()
-            pl.show()
+            plt.show()
 
 
 if __name__ == "__main__":
