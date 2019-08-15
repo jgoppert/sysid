@@ -119,7 +119,7 @@ def subspace_det_algo1(y, u, f, p, s_tol, dt):
     #------------------------------------------
     # values in S and partition the SVD accordingly to obtain U1, S1
     #print s0
-    n_x = pl.find(s0/s0.max() > s_tol)[-1] + 1
+    n_x = pl.where(s0/s0.max() > s_tol)[0][-1] + 1
     U1 = U0[:, :n_x]
     # S1 = pl.matrix(pl.diag(s0[:n_x]))
     # VT1 = VT0[:n_x, :n_x]
