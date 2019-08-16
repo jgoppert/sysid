@@ -1,0 +1,10 @@
+name: sysid
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip
+  - matplotlib
+  - numpy
+  - scipy
+  - pytest
